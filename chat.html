@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+
+<html>
+    <head>
+        <title>Chat Box</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+            body { margin: 0; padding-bottom: 3rem; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+
+            #form { background: rgba(0, 0, 0, 0.15); padding: 0.25rem; position: fixed; bottom: 0; left: 0; right: 0; display: flex; height: 3rem; box-sizing: border-box; backdrop-filter: blur(10px); }
+            #input { border: none; padding: 0 1rem; flex-grow: 1; border-radius: 2rem; margin: 0.25rem; }
+            #input:focus { outline: none; }
+            #form > button { background: #333; border: none; padding: 0 1rem; margin: 0.25rem; border-radius: 3px; outline: none; color: #fff; }
+
+            .chat_content {display: flex;}
+            .chat_content p {margin: 10px;}
+
+            @media screen {
+                
+            }
+        </style>
+    </head>
+    <body>
+        <!-- <ul id="message"></ul> -->
+        <div id="message_container"></div>
+        <form id="form" action="">
+            <input id="input" autocomplete="off" /> <button>Send</button>
+        </form>
+    </body>
+</html>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+    let socket = io();
+
+    let messages = document.getElementById('message_container');
+    let form = document.getElementById('form');
+    let input = document.getElementById('input');
+    
+    let userColor = getRandomColor();
+
+    function getRandomColor() {
+        let letters = '0123456789ABCDEF';
+        let color = '#';
+        for (let i=0; i<6; i++) {
+            color += letters[Math.floor(Math.random() * 16)];
+        }
+        return color;
+    }
+    function getCookie(name) {
+        let matches = document.cookie.match(new RegExp("(?:^|; )" + name.replace(/([\.$?*|{}\(\)\[\]\\\/\+^])/g, '\\$1') + "=([^;]*)"));
+        return matches ? decodeURIComponent(matches[1]) : undefined;
+    }
+    function setCookie(name, value, options = {}) {
+        options = {
+            path: '/',
+            ...options
+        };
+        if (options.expires instanceof Date) {
+            options.expires = options.expires.toUTCString();
+        }
+        let updatedCookie = encodeURIComponent(name) + "=" + encodeURIComponent(value);
+        for (let optionsKey in options) {
+            updatedCookie += "; " + optionsKey;
+            let optionaValue = options[optionKey];
+            if (optionValue != true) {
+                updatedCookie += "=" + optionValue;
+            }
+        }
+
+        document.cookie = updatedCookie;
+    }
+
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        if (input.value) {
+            let chat_content = {
+                user_name: getCookie('user_name'),
+                text: input.value,
+                color: userColor
+            }
+            socket.emit('chat message', chat_content);
+            input.value = '';
+            input.focus();
+        }
+    });
+
+    socket.on('chat message', function(msg) {
+        let user_name = document.createElement('p');
+        user_name.setAttribute('class', 'chat_user_name');
+        user_name.setAttribute('style', "color:"+msg.color);
+        let text = document.createElement('p');
+        text.setAttribute('class', 'chat_text');
+        let content = document.createElement('div');
+
+        user_name.textContent = msg.user_name
+        text.textContent = msg.text;
+
+        content.appendChild(user_name);
+        content.appendChild(text);
+        content.setAttribute('class', 'chat_content');
+
+        messages.appendChild(content);
+        window.scrollTo(0, document.body.scrollHeight);
+    });
+</script>

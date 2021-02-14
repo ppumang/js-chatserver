@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+
+<head>
+    <title>Chat Box</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        #login_form {
+            width: 100%;
+            text-align: center;
+            position: fixed;
+            top: 45%;
+        }
+    </style>
+</head>
+<body>
+    <form id="login_form" action="/login.js" method="POST">
+        <label for="name">Name</label>
+        <input id="name" type="text" name="user_name"/>
+        <input id="submit" type="submit" value="login"/>
+    </form>
+</body>
+
+<script>
+    let form = document.getElementById('login_form');
+    console.log(form);
+</script>
