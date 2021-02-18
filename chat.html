@@ -5,26 +5,33 @@
         <title>Chat Box</title>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <style>
-            body { margin: 0; padding-bottom: 3rem; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+            body { margin: 0; padding-bottom: 3rem; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: black;}
 
-            #form { background: rgba(0, 0, 0, 0.15); padding: 0.25rem; position: fixed; bottom: 0; left: 0; right: 0; display: flex; height: 3rem; box-sizing: border-box; backdrop-filter: blur(10px); }
-            #input { border: none; padding: 0 1rem; flex-grow: 1; border-radius: 2rem; margin: 0.25rem; }
+            #form { background: rgba(0, 0, 0, 0.15); padding: 0.25rem; bottom: 0; left: 0; right: 0; display: flex; box-sizing: border-box; backdrop-filter: blur(10px); }
+            #input { border: none; flex-grow: 1; border-radius: 2rem; margin: 0.25rem; background: black; color: chartreuse;}
             #input:focus { outline: none; }
-            #form > button { background: #333; border: none; padding: 0 1rem; margin: 0.25rem; border-radius: 3px; outline: none; color: #fff; }
+            #form > button { background: black; border: none; padding: 0 1rem; margin: 0.25rem; border-radius: 3px; outline: none; color: #fff; }
 
             .chat_content {display: flex;}
             .chat_content p {margin: 10px;}
-
-            @media screen {
-                
+            .chat_text {
+                color: chartreuse;
             }
+            .greater_sign {
+                color: white;
+            }
+
         </style>
     </head>
     <body>
         <!-- <ul id="message"></ul> -->
         <div id="message_container"></div>
         <form id="form" action="">
-            <input id="input" autocomplete="off" /> <button>Send</button>
+            <p style="color: cyan;" id="terminal_main"></p>
+            <p style="color: white;" id="colon">&nbsp:&nbsp</p>
+            <p style="color:dodgerblue;" id="terminal_dir">/sneaky_chat</p>
+            <p style="color: white;" id="dollar">$</p>
+            <input id="input" autocomplete="off" /> <button></button>
         </form>
     </body>
 </html>
@@ -36,10 +43,13 @@
     let messages = document.getElementById('message_container');
     let form = document.getElementById('form');
     let input = document.getElementById('input');
-    
     let userColor = getRandomColor();
+    if (!getCookie("user_name")) {
+        location.href = "/login";
+    }
 
     function getRandomColor() {
+        let bright_colors = "FEDCBA";
         let letters = '0123456789ABCDEF';
         let color = '#';
         for (let i=0; i<6; i++) {
@@ -93,9 +103,14 @@
         text.setAttribute('class', 'chat_text');
         let content = document.createElement('div');
 
-        user_name.textContent = msg.user_name
+        let greater_sign = document.createElement('p');
+        greater_sign.setAttribute('class', 'greater_sign');
+        greater_sign.textContent = "> ";
+
+        user_name.textContent = msg.user_name;
         text.textContent = msg.text;
 
+        content.appendChild(greater_sign);
         content.appendChild(user_name);
         content.appendChild(text);
         content.setAttribute('class', 'chat_content');
@@ -103,4 +118,6 @@
         messages.appendChild(content);
         window.scrollTo(0, document.body.scrollHeight);
     });
+    document.getElementById("terminal_main").innerText = getCookie("user_name") + "@main";
+    document.getElementById("input").focus();
 </script>

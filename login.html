@@ -4,6 +4,9 @@
     <title>Chat Box</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
+        body {
+            background: black;
+        }
         #login_form {
             width: 100%;
             text-align: center;
@@ -14,13 +17,13 @@
 </head>
 <body>
     <form id="login_form" action="/login.js" method="POST">
-        <label for="name">Name</label>
-        <input id="name" type="text" name="user_name"/>
-        <input id="submit" type="submit" value="login"/>
+        <label for="name" style="color: lawngreen; font-weight: 700;">></label>
+        <input id="name" type="text" name="user_name" style="color: white; background: black; border: none;" placeholder="name"/>
+        <input id="submit" type="submit" value="" style="color: white; background: black; border: none;"/>
     </form>
 </body>
 
 <script>
     let form = document.getElementById('login_form');
-    console.log(form);
+    document.getElementById("name").focus();
 </script>
