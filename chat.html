@@ -17,14 +17,19 @@
             .chat_content {display: flex; line-height: 5px;}
             .chat_content p {margin: 10px;}
             .chat_text {color: chartreuse;}
+            .cmd_result {color: white;}
 
+            #terminal_main {color: cyan;}
+            #colon {color: white;}
+            #terminal_dir {color: dodgerblue;}
+            #dollar {color: white;}
         </style>
     </head>
     <body>
         <div id="message_container"></div>
         <form id="form" action="">
             <p style="color: cyan;" id="terminal_main"></p>
-            <p style="color: white;" id="colon">&nbsp:&nbsp</p>
+            <p style="color: white;" id="colon">:</p>
             <p style="color:dodgerblue;" id="terminal_dir">/sneaky_chat</p>
             <p style="color: white;" id="dollar">$</p>
             <input id="input" autocomplete="off" /> <button></button>
@@ -35,7 +40,6 @@
 
 <script src="/socket.io/socket.io.js"></script>
 <script>
-    let socket = io();
     let typing = [];
 
     let messages = document.getElementById('message_container');
@@ -43,10 +47,12 @@
     let input = document.getElementById('input');
     let userColor = getRandomColor();
     let user_name = getCookie("user_name");
-
     if (!user_name) {
         location.href = "/login";
     }
+
+    let socket = io('/', {'query': 'user_name=' + user_name});
+
 
     function getRandomColor() {
         let letters = '0123456789ABCDEF';
@@ -82,6 +88,12 @@
 
     form.addEventListener('submit', function(e) {
         e.preventDefault();
+        if (input.value == 'ls') {
+            ls();
+            input.value = '';
+            input.focus();
+            return;
+        }
         if (input.value) {
             let chat_content = {
                 user_name: user_name,
@@ -144,6 +156,68 @@
         if(idx>-1) {typing.splice(idx,1);}
         document.getElementById("typing").innerText = (typing.reduce((str, x,) => {return str += ", " + x}, "") + (typing.length>0 ? " is typing..." : "")).substr(1);
     });
+
+    window.addEventListener('beforeunload', (e) => {
+        socket.emit('user left', user_name);
+        e.preventDefault();
+        e.returnValue = '';
+    });
+    window.addEventListener('onload', (e) => {
+        socket.emit('user connected', user_name);
+        e.preventDefault();
+        e.returnValue = '';
+    });
+    
+    function ls() {
+        let xhr = new XMLHttpRequest();
+        xhr.open('get', '/command/ls', true);
+        xhr.send();
+        xhr.onreadystatechange = () => {
+            if (xhr.readyState === XMLHttpRequest.DONE) {
+                let users = JSON.parse(xhr.response);
+                leaveTrace('ls');
+                let content = document.createElement('div');
+                for (let i=0; i<users.length; i++) {
+                    let user = document.createElement('p');
+                    user.innerText = users[i];
+                    user.setAttribute('class', 'cmd_result');
+                    content.appendChild(user);
+                    content.setAttribute('class', 'chat_content');
+                    messages.appendChild(content);
+                    window.scrollTo(0, document.body.scrollHeight);
+                }
+            }
+        }
+    }
+
+    function leaveTrace(_cmd) {
+        let main = document.createElement('p');
+        main.innerText = user_name + "@main"
+        main.setAttribute('id', 'terminal_main');
+        let colon = document.createElement('p');
+        colon.innerText = " : ";
+        colon.setAttribute('id', 'colon');
+        let dir = document.createElement('p');
+        dir.innerText = "/sneaky_chat";
+        dir.setAttribute('id', 'terminal_dir');
+        let dollor = document.createElement('p');
+        dollor.innerText = "$";
+        dollor.setAttribute('id', 'dollar');
+        let cmd = document.createElement('p');
+        cmd.innerText = _cmd;
+        cmd.setAttribute('style', 'color: chartreuse');
+
+        let content = document.createElement('div');
+        content.setAttribute('style', 'display: flex');
+        content.appendChild(main);
+        content.appendChild(colon);
+        content.appendChild(dir);
+        content.appendChild(dollor);
+        content.appendChild(cmd);
+        messages.appendChild(content);
+        window.scrollTo(0, document.body.scrollHeight);        
+
+    }
 
     
 </script>
