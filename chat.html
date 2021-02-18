@@ -94,6 +94,7 @@
             input.focus();
             return;
         }
+        if (input.value == 'exit') {exit();}
         if (input.value) {
             let chat_content = {
                 user_name: user_name,
@@ -188,6 +189,10 @@
                 }
             }
         }
+    }
+
+    function exit() {
+        location.href = '/login';
     }
 
     function leaveTrace(_cmd) {
