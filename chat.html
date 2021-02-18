@@ -5,26 +5,22 @@
         <title>Chat Box</title>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <style>
-            body { margin: 0; padding-bottom: 3rem; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: black;}
+            body { margin: 0; padding-bottom: 3rem; font-family: monospace; font-weight: 600; background: black;}
 
             #form { background: rgba(0, 0, 0, 0.15); padding: 0.25rem; bottom: 0; left: 0; right: 0; display: flex; box-sizing: border-box; backdrop-filter: blur(10px); }
-            #input { border: none; flex-grow: 1; border-radius: 2rem; margin: 0.25rem; background: black; color: chartreuse;}
+            #input { border: none; flex-grow: 1; border-radius: 2rem; margin: 0.25rem; background: black; color: chartreuse; font-family: monospace;}
             #input:focus { outline: none; }
             #form > button { background: black; border: none; padding: 0 1rem; margin: 0.25rem; border-radius: 3px; outline: none; color: #fff; }
 
-            .chat_content {display: flex;}
+            .channel_name {color: orangered;}
+            .greater_sign {color: white;}
+            .chat_content {display: flex; line-height: 5px;}
             .chat_content p {margin: 10px;}
-            .chat_text {
-                color: chartreuse;
-            }
-            .greater_sign {
-                color: white;
-            }
+            .chat_text {color: chartreuse;}
 
         </style>
     </head>
     <body>
-        <!-- <ul id="message"></ul> -->
         <div id="message_container"></div>
         <form id="form" action="">
             <p style="color: cyan;" id="terminal_main"></p>
@@ -33,23 +29,26 @@
             <p style="color: white;" id="dollar">$</p>
             <input id="input" autocomplete="off" /> <button></button>
         </form>
+        <p id="typing" style="color: white;"></p>
     </body>
 </html>
 
 <script src="/socket.io/socket.io.js"></script>
 <script>
     let socket = io();
+    let typing = [];
 
     let messages = document.getElementById('message_container');
     let form = document.getElementById('form');
     let input = document.getElementById('input');
     let userColor = getRandomColor();
-    if (!getCookie("user_name")) {
+    let user_name = getCookie("user_name");
+
+    if (!user_name) {
         location.href = "/login";
     }
 
     function getRandomColor() {
-        let bright_colors = "FEDCBA";
         let letters = '0123456789ABCDEF';
         let color = '#';
         for (let i=0; i<6; i++) {
@@ -85,7 +84,7 @@
         e.preventDefault();
         if (input.value) {
             let chat_content = {
-                user_name: getCookie('user_name'),
+                user_name: user_name,
                 text: input.value,
                 color: userColor
             }
@@ -96,22 +95,27 @@
     });
 
     socket.on('chat message', function(msg) {
-        let user_name = document.createElement('p');
-        user_name.setAttribute('class', 'chat_user_name');
-        user_name.setAttribute('style', "color:"+msg.color);
+        let chat_user_name = document.createElement('p');
+        chat_user_name.setAttribute('class', 'chat_user_name');
+        chat_user_name.setAttribute('style', "color:"+msg.color);
         let text = document.createElement('p');
         text.setAttribute('class', 'chat_text');
         let content = document.createElement('div');
 
         let greater_sign = document.createElement('p');
         greater_sign.setAttribute('class', 'greater_sign');
-        greater_sign.textContent = "> ";
+        greater_sign.textContent = ">";
 
-        user_name.textContent = msg.user_name;
+        let channel = document.createElement('p');
+        channel.setAttribute('class', 'channel_name');
+        channel.textContent = "git:(main)";
+
+        chat_user_name.textContent = msg.user_name;
         text.textContent = msg.text;
 
         content.appendChild(greater_sign);
-        content.appendChild(user_name);
+        content.appendChild(channel);
+        content.appendChild(chat_user_name);
         content.appendChild(text);
         content.setAttribute('class', 'chat_content');
 
@@ -120,4 +124,26 @@
     });
     document.getElementById("terminal_main").innerText = getCookie("user_name") + "@main";
     document.getElementById("input").focus();
+
+    document.getElementById("input").addEventListener("focus", () => {
+        console.log("typing");
+        socket.emit('typing', user_name);
+    })
+    document.getElementById("input").addEventListener("focusout", () => {
+        socket.emit('not typing', user_name);
+    })
+
+    socket.on("typing", function(user_name) {
+        typing.push(user_name);
+        if (typing.length>0) {
+            document.getElementById("typing").innerText = (typing.reduce((str, x,) => {return str += ", " + x}, "") + " is typing...").substr(1);
+        }
+    });
+    socket.on("not typing", (user_name) => {
+        const idx = typing.indexOf(user_name);
+        if(idx>-1) {typing.splice(idx,1);}
+        document.getElementById("typing").innerText = (typing.reduce((str, x,) => {return str += ", " + x}, "") + (typing.length>0 ? " is typing..." : "")).substr(1);
+    });
+
+    
 </script>

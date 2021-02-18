@@ -5,6 +5,13 @@ const path = require('path');
 const io = require('socket.io')(http);
 const bodyParser = require('body-parser');
 const login_api = require('./login');
+const redis = require('redis');
+
+const redisClient = redis.createClient({
+    host: "127.0.0.1",
+    port: 6379,
+    db: 0
+});
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: true}));
@@ -24,6 +31,13 @@ io.on('connection', (socket) => {
     socket.on('chat message', (msg) => {
         io.emit('chat message', msg);
     });
+    socket.on('typing', (user_name) => {
+        console.log('typing =>', user_name);
+        socket.broadcast.emit('typing', user_name);
+    })
+    socket.on('not typing', (user_name) => {
+        socket.broadcast.emit('not typing', user_name);
+    })
 });
 
 http.listen(3000, () => {
