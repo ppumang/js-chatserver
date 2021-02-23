@@ -7,17 +7,17 @@
         <style>
             body { margin: 0; padding-bottom: 3rem; font-family: monospace; font-weight: 600; background: black;}
 
-            #form { background: rgba(0, 0, 0, 0.15); padding: 0.25rem; bottom: 0; left: 0; right: 0; display: flex; box-sizing: border-box; backdrop-filter: blur(10px); }
-            #input { border: none; flex-grow: 1; border-radius: 2rem; margin: 0.25rem; background: black; color: chartreuse; font-family: monospace;}
+            #form { background: rgba(0, 0, 0, 0.15); padding: 0.25rem; bottom: 0; left: 0; right: 0; display: flex; box-sizing: border-box; backdrop-filter: blur(10px); align-items: center;}
+            #input { border: none; flex-grow: 1; border-radius: 2rem; margin: 0.25rem; background: black; color: chartreuse; font-family: monospace; font-weight: 600;}
             #input:focus { outline: none; }
             #form > button { background: black; border: none; padding: 0 1rem; margin: 0.25rem; border-radius: 3px; outline: none; color: #fff; }
 
-            .channel_name {color: orangered;}
-            .greater_sign {color: white;}
-            .chat_content {display: flex; line-height: 5px;}
-            .chat_content p {margin: 10px;}
+            .channel_name {color: orangered; margin-right: 10px;}
+            .greater_sign {color: white; margin: 5px;}
+            .chat_content {display: flex; line-height: 5px; align-items: center; padding: 0.25rem;}
             .chat_text {color: chartreuse;}
-            .cmd_result {color: white;}
+            .cmd_result {color: white; margin: 10px;}
+            .trace_text {color: chartreuse; margin: 0.25rem; padding: 1px 2px;}
 
             #terminal_main {color: cyan;}
             #colon {color: white;}
@@ -27,11 +27,12 @@
     </head>
     <body>
         <div id="message_container"></div>
+        
         <form id="form" action="">
-            <p style="color: cyan;" id="terminal_main"></p>
-            <p style="color: white;" id="colon">:</p>
-            <p style="color:dodgerblue;" id="terminal_dir">/sneaky_chat</p>
-            <p style="color: white;" id="dollar">$</p>
+            <span id="terminal_main"></span>
+            <span id="colon">:</span>
+            <span id="terminal_dir">/sneaky_chat</span>
+            <span id="dollar">$</span>
             <input id="input" autocomplete="off" /> <button></button>
         </form>
         <p id="typing" style="color: white;"></p>
@@ -39,110 +40,63 @@
 </html>
 
 <script src="/socket.io/socket.io.js"></script>
+<script src="/src/cookies.js"></script>
+<script src="/src/utils.js"></script>
+<script src="/src/command_client.js"></script>
 <script>
     let typing = [];
+    let DOC_message_container = document.getElementById('message_container');
+    let DOC_form = document.getElementById('form');
+    let DOC_input = document.getElementById('input');
+    DOC_input.focus();
 
-    let messages = document.getElementById('message_container');
-    let form = document.getElementById('form');
-    let input = document.getElementById('input');
+
     let userColor = getRandomColor();
     let user_name = getCookie("user_name");
-    if (!user_name) {
-        location.href = "/login";
-    }
+    if (!user_name) {location.href = "/login";}
 
+    document.getElementById("terminal_main").innerText = getCookie("user_name") + "@main";
+    let commands = command_list();
+    
     let socket = io('/', {'query': 'user_name=' + user_name});
 
-
-    function getRandomColor() {
-        let letters = '0123456789ABCDEF';
-        let color = '#';
-        for (let i=0; i<6; i++) {
-            color += letters[Math.floor(Math.random() * 16)];
-        }
-        return color;
-    }
-    function getCookie(name) {
-        let matches = document.cookie.match(new RegExp("(?:^|; )" + name.replace(/([\.$?*|{}\(\)\[\]\\\/\+^])/g, '\\$1') + "=([^;]*)"));
-        return matches ? decodeURIComponent(matches[1]) : undefined;
-    }
-    function setCookie(name, value, options = {}) {
-        options = {
-            path: '/',
-            ...options
-        };
-        if (options.expires instanceof Date) {
-            options.expires = options.expires.toUTCString();
-        }
-        let updatedCookie = encodeURIComponent(name) + "=" + encodeURIComponent(value);
-        for (let optionsKey in options) {
-            updatedCookie += "; " + optionsKey;
-            let optionaValue = options[optionKey];
-            if (optionValue != true) {
-                updatedCookie += "=" + optionValue;
-            }
-        }
-
-        document.cookie = updatedCookie;
-    }
-
-    form.addEventListener('submit', function(e) {
+    DOC_form.addEventListener('submit', function(e) {
         e.preventDefault();
-        if (input.value == 'ls') {
-            ls();
-            input.value = '';
-            input.focus();
-            return;
+        if (!DOC_input.value) {return;}
+        if (Object.keys(commands).includes(DOC_input.value)) {
+            commands[DOC_input.value]()
+            DOC_input.value = '';
+            DOC_input.focus();
+            return ;
         }
-        if (input.value == 'exit') {exit();}
-        if (input.value) {
-            let chat_content = {
-                user_name: user_name,
-                text: input.value,
-                color: userColor
-            }
-            socket.emit('chat message', chat_content);
-            input.value = '';
-            input.focus();
+        let chat_content = {
+            user_name: user_name,
+            text: DOC_input.value,
+            color: userColor
         }
+        socket.emit('chat message', chat_content);
+        DOC_input.value = '';
+        DOC_input.focus();
     });
 
     socket.on('chat message', function(msg) {
-        let chat_user_name = document.createElement('p');
-        chat_user_name.setAttribute('class', 'chat_user_name');
-        chat_user_name.setAttribute('style', "color:"+msg.color);
-        let text = document.createElement('p');
-        text.setAttribute('class', 'chat_text');
-        let content = document.createElement('div');
+        let greater_sign = makeHTMLContent('span', ">", {'class': "greater_sign"});
+        let channel = makeHTMLContent('span', "/main", {"class": "channel_name"});
+        let chat_user_name = makeHTMLContent('span', msg.user_name, {"class": "chat_user_name", "style": "color:"+msg.color});
+        let text = makeHTMLContent('p', msg.text, {"class": "chat_text"});
 
-        let greater_sign = document.createElement('p');
-        greater_sign.setAttribute('class', 'greater_sign');
-        greater_sign.textContent = ">";
-
-        let channel = document.createElement('p');
-        channel.setAttribute('class', 'channel_name');
-        channel.textContent = "git:(main)";
-
-        chat_user_name.textContent = msg.user_name;
-        text.textContent = msg.text;
-
-        content.appendChild(greater_sign);
-        content.appendChild(channel);
-        content.appendChild(chat_user_name);
-        content.appendChild(text);
-        content.setAttribute('class', 'chat_content');
-
-        messages.appendChild(content);
+        let content = makeHTMLContent('div', null, {"class": "chat_content"});
+        content.append(channel, chat_user_name, greater_sign, text);
+        DOC_message_container.appendChild(content);
         window.scrollTo(0, document.body.scrollHeight);
     });
-    document.getElementById("terminal_main").innerText = getCookie("user_name") + "@main";
-    document.getElementById("input").focus();
 
-    document.getElementById("input").addEventListener("focus", () => {
-        console.log("typing");
+
+
+    DOC_input.addEventListener("focus", () => {
         socket.emit('typing', user_name);
     })
-    document.getElementById("input").addEventListener("focusout", () => {
+    DOC_input.addEventListener("focusout", () => {
         socket.emit('not typing', user_name);
     })
 
@@ -160,69 +114,11 @@
 
     window.addEventListener('beforeunload', (e) => {
         socket.emit('user left', user_name);
-        e.preventDefault();
-        e.returnValue = '';
     });
     window.addEventListener('onload', (e) => {
         socket.emit('user connected', user_name);
-        e.preventDefault();
-        e.returnValue = '';
     });
     
-    function ls() {
-        let xhr = new XMLHttpRequest();
-        xhr.open('get', '/command/ls', true);
-        xhr.send();
-        xhr.onreadystatechange = () => {
-            if (xhr.readyState === XMLHttpRequest.DONE) {
-                let users = JSON.parse(xhr.response);
-                leaveTrace('ls');
-                let content = document.createElement('div');
-                for (let i=0; i<users.length; i++) {
-                    let user = document.createElement('p');
-                    user.innerText = users[i];
-                    user.setAttribute('class', 'cmd_result');
-                    content.appendChild(user);
-                    content.setAttribute('class', 'chat_content');
-                    messages.appendChild(content);
-                    window.scrollTo(0, document.body.scrollHeight);
-                }
-            }
-        }
-    }
-
-    function exit() {
-        location.href = '/login';
-    }
-
-    function leaveTrace(_cmd) {
-        let main = document.createElement('p');
-        main.innerText = user_name + "@main"
-        main.setAttribute('id', 'terminal_main');
-        let colon = document.createElement('p');
-        colon.innerText = " : ";
-        colon.setAttribute('id', 'colon');
-        let dir = document.createElement('p');
-        dir.innerText = "/sneaky_chat";
-        dir.setAttribute('id', 'terminal_dir');
-        let dollor = document.createElement('p');
-        dollor.innerText = "$";
-        dollor.setAttribute('id', 'dollar');
-        let cmd = document.createElement('p');
-        cmd.innerText = _cmd;
-        cmd.setAttribute('style', 'color: chartreuse');
-
-        let content = document.createElement('div');
-        content.setAttribute('style', 'display: flex');
-        content.appendChild(main);
-        content.appendChild(colon);
-        content.appendChild(dir);
-        content.appendChild(dollor);
-        content.appendChild(cmd);
-        messages.appendChild(content);
-        window.scrollTo(0, document.body.scrollHeight);        
-
-    }
 
     
 </script>

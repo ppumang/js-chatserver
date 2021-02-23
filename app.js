@@ -2,10 +2,8 @@ const express = require('express');
 const app = express();
 const http = require('http').createServer(app);
 const path = require('path');
-const io = require('socket.io')(http);
+const io = require('socket.io')(http, {autoConnect: false});
 const bodyParser = require('body-parser');
-const login_api = require('./login');
-const command_api = require('./command');
 const redis = require('redis');
 const cookieParser = require('cookie-parser');
 
@@ -14,24 +12,27 @@ const redisClient = redis.createClient({
     port: 6379,
     db: 0
 });
+exports.redisClient = redisClient;
+
+const login_api = require('./login');
+const commands = require('./command_server');
+
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: true}));
+
+app.use('/src', express.static(path.join(__dirname, '/src')));
 
 app.get('/', (req,res) => {res.redirect('/login');});
 app.get('/login', (req,res) => {res.sendFile(path.join(__dirname, 'login.html'));});
 app.get('/chat', (req, res) => {res.sendFile(path.join(__dirname, 'chat.html'));});
 app.post('/login.js', (req,res) => {login_api.login(req,res)});
-app.get('/command/:cmd', (req,res) => {command_api.get(redisClient, req.params.cmd, res)});
+app.get('/command/:cmd', (req,res) => {commands[req.params.cmd](req, res)});
 
 
 io.on('connection', (socket) => {
     socket.broadcast.emit('chat message', {user_name: "notice", text: socket.handshake.query.user_name + " has joined!", color: "#808080"});
-    redisClient.rpush('users', socket.handshake.query.user_name);
-
-    // socket.on('disconnect', () => {
-    //     socket.broadcast.emit('chat message', {user_name: "notice", text: "user left!", color: "#808080"});
-    // });
+    if (socket.handshake.query.user_name) {redisClient.rpush('users', socket.handshake.query.user_name);}
 
     socket.on('chat message', (msg) => {
         io.emit('chat message', msg);
